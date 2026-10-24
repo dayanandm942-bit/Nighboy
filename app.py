@@ -5,21 +5,32 @@ import threading
 from datetime import datetime, timedelta, timezone
 from flask import Flask
 from instagrapi import Client
+from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 
-# ✅ तेरी डिटेल्स यहाँ फिट कर दी हैं भाई:
+# ✅ तेरा असली यूजरनेम और पासवर्ड 
 IG_USERNAME = "sujeetmishra9336"
 IG_PASSWORD = "selected_reel.in"
-
-# जिस पेज से रील उठानी है
-TARGET_PAGE = "kh200.__"
 
 cl = Client()
 session_file = "/tmp/session.json"
 
 def init_client():
     try:
+        # डिवाइस को थोड़ा नॉर्मल फोन जैसा दिखाना 
+        cl.set_device({
+            "app_version": "269.0.0.18.75",
+            "android_version": 26,
+            "android_release": "8.0.0",
+            "dpi": "480dpi",
+            "resolution": "1080x1920",
+            "manufacturer": "Xiaomi",
+            "device": "chiron",
+            "model": "Mi MIX 2",
+            "cpu": "qcom",
+            "version_code": "314665256"
+        })
         if os.path.exists(session_file):
             cl.load_settings(session_file)
             cl.login(IG_USERNAME, IG_PASSWORD)
@@ -30,70 +41,74 @@ def init_client():
     except Exception as e:
         print(f"Login Error: {e}")
 
-# 🔥 24/7 ALWAYS ONLINE + STORY WATCHER (Background Engine)
+# 🔥 24/7 ALWAYS ONLINE (हरा डॉट हमेशा चालू)
 def always_online_loop():
     init_client()
     while True:
         try:
-            # 1. टाइमलाइन रिफ्रेश करेगा ताकि 'Active Now' (हरा डॉट) हमेशा चालू रहे
             cl.get_timeline_feed()
-            
-            # 2. लोगों की स्टोरीज़ अपने आप 'Seen' करेगा
-            reels_tray = cl.get_reels_tray_feed()
-            for tray in reels_tray[:3]: # हर बार में 3 लोगों की स्टोरी देखेगा
-                items = tray.get("items", [])
-                if items:
-                    media_ids = [item["pk"] for item in items]
-                    cl.story_seen(media_ids)
-            
-            print("Online Ping Sent & Stories Watched! 🟢")
+            print("Online Ping Sent! 🟢")
         except Exception as e:
             print(f"Loop Error: {e}")
             init_client()
-            
-        # हर 3 से 4 मिनट (180-240 सेकंड) में अपने आप चलेगा
+        # हर 3-4 मिनट में ऑनलाइन का सिग्नल भेजेगा
         time.sleep(random.randint(180, 240))
 
-# सर्वर स्टार्ट होते ही बैकग्राउंड में 24/7 लूप चालू कर देगा
 threading.Thread(target=always_online_loop, daemon=True).start()
 
 @app.route("/")
 def home():
-    return "Sujeet Bhai ka 24/7 Always Online + Night Owl Bot Live Hai! 🟢💻🔥"
+    return "Sujeet Bhai ka 24/7 Online + Auto Text Story Bot Live Hai! 🟢💻🔥"
 
-# 🌙 रात को 2 AM, 3 AM, 4 AM पर अपने आप टाइम बदलकर स्टोरी डालने वाला लिंक
 @app.route("/post-night-story")
 def post_story():
     try:
-        # 1. इंडिया का असली टाइम (IST) निकालना
+        # 1. टाइम निकालना (IST)
         ist_timezone = timezone(timedelta(hours=5, minutes=30))
         now_ist = datetime.now(ist_timezone)
-        
-        # यह अपने आप '2 AM', '3 AM', '4 AM' जैसा फॉर्मेट निकाल लेगा
         current_hour_str = now_ist.strftime("%-I %p") 
         
-        # 2. @kh200.__ पेज से रैंडम रील उठाना
-        user_id = cl.user_id_from_username(TARGET_PAGE)
-        medias = cl.user_clips(user_id, amount=20)
+        # 2. खुद से एक तगड़ी फोटो बनाना (ताकि वीडियो/FFmpeg का कोई लफड़ा ही न रहे!)
+        img = Image.new('RGB', (1080, 1920), color=(15, 15, 15)) # ब्लैक बैकग्राउंड
+        d = ImageDraw.Draw(img)
         
-        if not medias:
-            return "भाई उस पेज से रील नहीं मिल पाई!"
+        # फॉन्ट सेट करना (बड़ा साइज़)
+        try:
+            font = ImageFont.load_default(size=70)
+        except:
+            font = ImageFont.load_default()
+        
+        # 3. जो टेक्स्ट लिखना है (टाइम के साथ)
+        text = f"Time update: It's {current_hour_str}\n\nBut I can't sleep...\nLearning computer coding 💻🔥"
+        
+        # सेंटर में टेक्स्ट लिखने का लॉजिक
+        bbox = d.textbbox((0, 0), text, font=font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        x = (1080 - w) / 2
+        y = (1920 - h) / 2
+        
+        # हैकर वाले हरे रंग (Neon Green) में टेक्स्ट लिखना
+        d.multiline_text((x, y), text, fill=(0, 255, 0), font=font, align="center")
+        
+        photo_path = "/tmp/night_story.jpg"
+        img.save(photo_path)
+        
+        # 🚨 5 सेकंड का इंतज़ार (सिक्योरिटी के लिए)
+        time.sleep(5)
+        
+        # 4. फोटो को स्टोरी पर अपलोड मारना (इसमें कोई बैन नहीं लगता!)
+        cl.photo_upload_to_story(photo_path, caption="Night grind! 🔥")
+        
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
             
-        selected_reel = random.choice(medias)
-        video_path = cl.clip_download(selected_reel.pk, folder="/tmp")
-        
-        # 3. टाइम के हिसाब से ऑटोमैटिक कैप्शन बदलना
-        caption = f"Time update: It's {current_hour_str} but I can't sleep, learning computer coding... 💻🔥"
-        
-        cl.video_upload_to_story(video_path, caption=caption)
-        
-        if os.path.exists(video_path):
-            os.remove(video_path)
-            
-        return f"Story Posted Successfully with time: {current_hour_str}! 🚀🔥"
+        return f"✅ SUCCESS: Photo Story Posted with time: {current_hour_str}! 🚀🔥"
+    
     except Exception as e:
-        return f"Story dalne me error aaya: {str(e)}"
+        return f"❌ ERROR aaya bhai: {str(e)}"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+        
