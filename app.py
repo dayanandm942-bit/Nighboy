@@ -9,7 +9,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 
-# ✅ तेरा असली यूजरनेम और पासवर्ड 
 IG_USERNAME = "sujeetmishra9336"
 IG_PASSWORD = "selected_reel.in"
 
@@ -18,14 +17,30 @@ session_file = "/tmp/session.json"
 
 def init_client():
     try:
-        # मैंने वो पुराना डिवाइस वाला कोड हटा दिया है, अब यह खुद लेटेस्ट वर्ज़न लेगा!
+        # 🚨 सबसे ज़रूरी: अगर पुरानी करप्ट फाइल पड़ी है, तो उसे डिलीट मारो
         if os.path.exists(session_file):
-            cl.load_settings(session_file)
-            cl.login(IG_USERNAME, IG_PASSWORD)
-        else:
-            cl.login(IG_USERNAME, IG_PASSWORD)
-            cl.dump_settings(session_file)
+            os.remove(session_file)
+            print("Old session deleted! Starting fresh... 🗑️")
+
+        # 📱 2024 लेटेस्ट Samsung Galaxy S21 का प्रोफाइल (इंस्टाग्राम इसे कभी पुराना नहीं बोलेगा)
+        cl.set_device({
+            "app_version": "333.0.0.32.118",
+            "android_version": 30,
+            "android_release": "11",
+            "dpi": "480dpi",
+            "resolution": "1080x2280",
+            "manufacturer": "Samsung",
+            "device": "SM-G991B",
+            "model": "SM-G991B",
+            "cpu": "exynos2100",
+            "version_code": "563600643"
+        })
+        
+        # एकदम नया फ्रेश लॉग-इन
+        cl.login(IG_USERNAME, IG_PASSWORD)
+        cl.dump_settings(session_file)
         print("Logged in successfully bhai! ✅")
+        
     except Exception as e:
         print(f"Login Error: {e}")
 
@@ -54,7 +69,6 @@ def post_story():
         now_ist = datetime.now(ist_timezone)
         current_hour_str = now_ist.strftime("%-I %p") 
         
-        # 1. खुद से एक ब्लैक स्क्रीन फोटो बनाना
         img = Image.new('RGB', (1080, 1920), color=(15, 15, 15)) 
         d = ImageDraw.Draw(img)
         
@@ -65,7 +79,6 @@ def post_story():
         
         text = f"Time update: It's {current_hour_str}\n\nBut I can't sleep...\nLearning computer coding 💻🔥"
         
-        # 2. सेंटर में हरे रंग से लिखना
         bbox = d.textbbox((0, 0), text, font=font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
@@ -79,7 +92,6 @@ def post_story():
         
         time.sleep(5)
         
-        # 3. स्टोरी अपलोड
         cl.photo_upload_to_story(photo_path, caption="Night grind! 🔥")
         
         if os.path.exists(photo_path):
